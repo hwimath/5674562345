@@ -1,0 +1,557 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8" />
+  <title>지수법칙의 활용</title>
+
+  <!-- MathJax 로드 (LaTeX 수식 렌더링) -->
+  <script src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js" defer></script>
+
+  <style>
+    body {
+      font-family: sans-serif;
+      margin: 20px;
+      background: #fafafa;
+      color: #333;
+    }
+    h1 {
+      text-align: center;
+      color: #1166cc;
+    }
+    .container {
+      max-width: 600px;
+      margin: 0 auto;
+      background: #fff;
+      border-radius: 8px;
+      box-shadow: 0 0 10px rgba(0,0,0,0.1);
+      padding: 20px;
+    }
+    .center {
+      text-align: center;
+    }
+    .hidden {
+      display: none;
+    }
+    .energy-bar {
+      width: 100%;
+      height: 20px;
+      background: #ccc;
+      border-radius: 10px;
+      margin: 10px 0;
+      overflow: hidden;
+      position: relative;
+    }
+    .energy-bar-fill {
+      height: 100%;
+      background: linear-gradient(90deg, #00dd00, #dd0000);
+      width: 100%;
+      transform: translateX(0);
+      transition: transform 0.2s linear;
+    }
+    .btn {
+      padding: 10px 16px;
+      margin: 4px;
+      cursor: pointer;
+      border: none;
+      border-radius: 4px;
+      background: #1166cc;
+      color: #fff;
+    }
+    .btn:hover {
+      background: #0c4f9f;
+    }
+    #response {
+      white-space: pre-wrap;
+      background: #f8f8f8;
+      border: 1px solid #ccc;
+      margin-top: 10px;
+      padding: 10px;
+      font-size: 0.9em;
+      display: none;
+    }
+    /* 보기 레이아웃 */
+    .choice-list {
+      list-style: none;
+      padding: 0;
+    }
+    .choice-list li {
+      margin: 8px 0;
+    }
+    .choice-list button {
+      width: 100%;
+      text-align: left;
+      background: #efefef;
+      color: #333;
+    }
+    .choice-list button:hover {
+      background: #e0e0e0;
+    }
+    /* 난이도 표시 */
+    .difficulty-display {
+      font-weight: bold;
+      color: #cc3300;
+    }
+  </style>
+</head>
+<body>
+
+<div class="container">
+  <h1>지수법칙의 활용</h1>
+
+  <!-- 시작 화면 -->
+  <div id="startScreen">
+    <div class="center">
+      <p>이름을 입력하세요:</p>
+      <input type="text" id="playerName" placeholder="홍길동" />
+      <p>난이도를 선택하세요:</p>
+      <select id="difficultySelect">
+        <option value="top">최상 (20초, 20점)</option>
+        <option value="high">상 (30초, 15점)</option>
+        <option value="mid">중 (40초, 13점)</option>
+        <option value="low">하 (시간 제한 없음, 10점)</option>
+      </select>
+      <br/><br/>
+      <button class="btn" onclick="startGame()">게임 시작</button>
+    </div>
+  </div>
+
+  <!-- 퀴즈 화면 -->
+  <div id="quizScreen" class="hidden">
+    <div class="center">
+      <p>플레이어: <span id="displayName"></span> | 난이도: <span id="displayDifficulty" class="difficulty-display"></span></p>
+      <p>남은 기회: <span id="lifeCount">3</span> | 점수: <span id="score">0</span></p>
+      <p>전체 진행 시간: <span id="totalTime">0</span>초</p>
+    </div>
+
+    <!-- 에너지바(시간제한) -->
+    <div id="energyBarContainer" class="energy-bar">
+      <div id="energyBar" class="energy-bar-fill"></div>
+    </div>
+
+    <!-- 문제/보기 영역 -->
+    <div id="questionArea">
+      <div id="questionText"></div>
+      <ul class="choice-list" id="choiceList"></ul>
+    </div>
+
+    <!-- 맞은/틀린 후 정답 안내 -->
+    <div id="feedback" class="center hidden"></div>
+  </div>
+
+  <!-- 종료 화면 (모든 기회 소진 or 수동으로 끝냄) -->
+  <div id="endScreen" class="hidden center">
+    <h2>게임 종료!</h2>
+    <p>최종 점수: <span id="finalScore"></span></p>
+    <p>총 소요 시간: <span id="finalTime"></span>초</p>
+    <button class="btn" onclick="sendScore()">점수 전송</button>
+    <div id="response"></div>
+  </div>
+</div>
+
+<script>
+// -------------------------------------------
+// 문제 데이터 (문제번호 65~85 중 73 제외, 총 20문제)
+// 수식은 MathJax를 위해 \\( ... \\) 형식 사용.
+// 선택지는 배열 인덱스 순서대로, correctIndex가 정답 인덱스.
+//
+const problemData = [
+  {
+    question: "문제 65: \\(8^x = 10,\\; 125^y = 10\\) 에서 \\(\\frac{1}{x} + \\frac{1}{y}\\)는?",
+    choices: ["1", "2", "3", "4"],
+    correctIndex: 2 // (3) 이 정답
+  },
+  {
+    question: "문제 66: \\(8^x = 6,\\; 27^y = 6\\) 에서 \\(\\frac{1}{x} + \\frac{1}{y}\\)는?",
+    choices: ["1", "2", "3", "4"],
+    correctIndex: 2
+  },
+  {
+    question: "문제 67: \\(3^x = 12^y = 6\\) 에서 \\(\\frac{1}{x} + \\frac{1}{y}\\)는?",
+    choices: ["1", "2", "3", "6"],
+    correctIndex: 1 // (2) 이 정답
+  },
+  {
+    question: "문제 68: \\(5^x = 6^y = 30\\) 에서 \\(\\frac{1}{x} + \\frac{1}{y}\\)는?",
+    choices: ["1", "2", "3", "4"],
+    correctIndex: 0
+  },
+  {
+    question: "문제 69: \\(25^x = 4^y = 10\\) 에서 \\(\\frac{1}{x} + \\frac{1}{y}\\)는?",
+    choices: ["1", "2", "3", "4"],
+    correctIndex: 1
+  },
+  {
+    question: "문제 70: \\(2^x = (\\tfrac{1}{5})^y = \\sqrt{10}\\) 에서 \\(\\frac{1}{x} + \\frac{1}{y}\\)는?",
+    choices: ["1", "2", "3", "4"],
+    correctIndex: 1
+  },
+  {
+    question: "문제 71: \\(5^x = 4^y = 20\\) 에서 \\(\\frac{1}{x} + \\frac{1}{y}\\)는?",
+    choices: ["1", "2", "3", "4"],
+    correctIndex: 0
+  },
+  {
+    question: "문제 72: \\(20^x = 8,\\; 5^y = 16\\) 에서 \\(\\frac{3}{x} - \\frac{4}{y}\\)는?",
+    choices: ["-1", "2", "3", "4"],
+    correctIndex: 1
+  },
+  {
+    question: "문제 74: \\(2^x = 27,\\; 18^y = 81\\) 에서 \\(\\frac{9}{x} - \\frac{12}{y}\\)는?",
+    choices: ["-6", "-2", "2", "6"],
+    correctIndex: 0
+  },
+  {
+    question: "문제 75: \\(15^x = 3^y = 5\\) 에서 \\(\\frac{1}{x} + \\frac{1}{y}\\)는?",
+    choices: ["1", "2", "3", "5"],
+    correctIndex: 0
+  },
+  {
+    question: "문제 76: \\(36^x = 81^y = 2\\) 에서 \\(\\frac{2y - x}{2xy}\\)는?",
+    choices: ["1", "2", "3", "4"],
+    correctIndex: 1
+  },
+  {
+    question: "문제 77: \\(5^x = 81,\\; 15^y = 27\\) 에서 \\(\\frac{4}{x} - \\frac{3}{y}\\)는?",
+    choices: ["-2", "-1", "0", "1"],
+    correctIndex: 1
+  },
+  {
+    question: "문제 78: \\(18^x = 27,\\; 2^y = 9\\) 에서 \\(\\frac{3}{x} - \\frac{2}{y}\\)는?",
+    choices: ["1", "2", "3", "4"],
+    correctIndex: 1
+  },
+  {
+    question: "문제 79: \\(67^x = 27,\\; 603^y = 81\\) 에서 \\(\\frac{3}{x} - \\frac{4}{y}\\)는?",
+    choices: ["-2", "2", "3", "4"],
+    correctIndex: 0
+  },
+  {
+    question: "문제 80: \\(9^x = 32,\\; 36^y = 16\\) 에서 \\(\\frac{5}{x} - \\frac{4}{y}\\)는?",
+    choices: ["-2", "2", "4", "6"],
+    correctIndex: 1
+  },
+  {
+    question: "문제 81: \\(5^x = 16,\\; 20^y = 64\\) 에서 \\(\\frac{4}{x} - \\frac{6}{y}\\)는?",
+    choices: ["-2", "2", "-3", "3"],
+    correctIndex: 0
+  },
+  {
+    question: "문제 82: \\(2^x = 9^y = 12\\) 에서 \\(\\frac{4}{x} + \\frac{1}{y}\\)는?",
+    choices: ["1", "2", "3", "4"],
+    correctIndex: 1
+  },
+  {
+    question: "문제 83: \\(20^x = 32,\\; 5^y = 16\\) 에서 \\(\\frac{5}{x} - \\frac{4}{y}\\)는?",
+    choices: ["-2", "2", "3", "4"],
+    correctIndex: 1
+  },
+  {
+    question: "문제 84: \\(9^x = 8^y = 36\\) 에서 \\(\\frac{1}{2x} + \\frac{1}{3y}\\)는?",
+    choices: ["\\(\\tfrac{1}{2}\\)", "1", "2", "\\(\\tfrac{1}{3}\\)"],
+    correctIndex: 0
+  },
+  {
+    question: "문제 85: \\(2^x = 3^y = 36\\) 에서 \\(\\dfrac{4(x^2 + y^2) - x^2y^2}{2(x + y)}\\)는?",
+    choices: ["-8", "-6", "6", "8"],
+    correctIndex: 0
+  }
+];
+
+// -------------------------------------------
+// 전역 상태
+let playerName = "";
+let difficulty = "low";
+let timeLimit = 0; // 난이도별 제한 (초)
+let scorePerCorrect = 0; // 난이도별 정답 시 점수
+let life = 3; // 3번 틀리면 종료
+let score = 0;
+let totalElapsed = 0;  // 전체 게임 시간 (초)
+let questionTimer = null; 
+let totalTimer = null;
+let energyInterval = null;
+let isGameOver = false;
+
+// 문제 진행 관련
+let questionIndex = 0;     // 현재 문제 인덱스 (셋 내에서)
+let usedCount = 0;         // 셋을 몇 문제 소화했는지
+let shuffledProblems = []; // 처음 20문제를 섞은 배열
+
+// -------------------------------------------
+// 난이도별 설정
+function setDifficulty(diff) {
+  switch(diff) {
+    case "top":
+      timeLimit = 20;
+      scorePerCorrect = 20;
+      break;
+    case "high":
+      timeLimit = 30;
+      scorePerCorrect = 15;
+      break;
+    case "mid":
+      timeLimit = 40;
+      scorePerCorrect = 13;
+      break;
+    case "low":
+      timeLimit = 0; // 무제한
+      scorePerCorrect = 10;
+      break;
+  }
+  difficulty = diff;
+}
+
+// -------------------------------------------
+// 시작 버튼 클릭 -> 초기화 후 게임 시작
+function startGame() {
+  const nameInput = document.getElementById("playerName");
+  playerName = nameInput.value.trim() || "플레이어";
+  const diffSelect = document.getElementById("difficultySelect");
+  setDifficulty(diffSelect.value);
+
+  // 화면 전환
+  document.getElementById("startScreen").classList.add("hidden");
+  document.getElementById("quizScreen").classList.remove("hidden");
+
+  // 표기 업데이트
+  document.getElementById("displayName").textContent = playerName;
+  let diffText = "";
+  if(difficulty === "top") diffText = "최상";
+  else if(difficulty === "high") diffText = "상";
+  else if(difficulty === "mid") diffText = "중";
+  else diffText = "하";
+  document.getElementById("displayDifficulty").textContent = diffText;
+
+  // 상태 초기화
+  score = 0;
+  life = 3;
+  totalElapsed = 0;
+  usedCount = 0;
+  questionIndex = 0;
+  isGameOver = false;
+
+  // 문제 배열 섞기
+  shuffledProblems = shuffleArray([...problemData]);
+  // 첫 문제 표시
+  showNextQuestion();
+
+  // 전체 타이머 시작 (1초 간격)
+  totalTimer = setInterval(() => {
+    if(!isGameOver) {
+      totalElapsed++;
+      document.getElementById("totalTime").textContent = totalElapsed;
+    }
+  }, 1000);
+}
+
+// -------------------------------------------
+// 문제 셔플
+function shuffleArray(arr) {
+  for (let i = arr.length - 1; i > 0; i--){
+    const j = Math.floor(Math.random() * (i+1));
+    [arr[i], arr[j]] = [arr[j], arr[i]];
+  }
+  return arr;
+}
+
+// -------------------------------------------
+// 문제 출력
+function showNextQuestion() {
+  if(isGameOver) return;
+
+  // 시간 만료/오답 처리 후 새 문제 보여줄 때 피드백 숨김
+  document.getElementById("feedback").classList.add("hidden");
+
+  // 만약 아직 20문제를 다 안 냈다면 shuffledProblems 를 사용
+  // 20문제를 다 쓰면 무한 랜덤
+  let problem;
+  if(usedCount < 20) {
+    problem = shuffledProblems[usedCount];
+  } else {
+    // 전부 소진 후에는 무작위로 계속
+    const randomIndex = Math.floor(Math.random() * problemData.length);
+    problem = problemData[randomIndex];
+  }
+
+  // 문제/보기 세팅
+  document.getElementById("questionText").innerHTML = problem.question;
+  const choiceList = document.getElementById("choiceList");
+  choiceList.innerHTML = "";
+  for(let i=0; i<problem.choices.length; i++){
+    const li = document.createElement("li");
+    const btn = document.createElement("button");
+    btn.innerHTML = problem.choices[i]; 
+    btn.onclick = () => checkAnswer(i, problem.correctIndex, problem);
+    li.appendChild(btn);
+    choiceList.appendChild(li);
+  }
+
+  // 수식 렌더링
+  MathJax.typeset();
+
+  // 타이머(에너지바) 초기화
+  clearInterval(questionTimer);
+  clearInterval(energyInterval);
+
+  if(difficulty !== "low") {
+    // 제한 시간이 있는 경우
+    let remaining = timeLimit;
+    updateEnergyBar(remaining);
+    energyInterval = setInterval(() => {
+      remaining--;
+      updateEnergyBar(remaining);
+      if(remaining <= 0) {
+        clearInterval(energyInterval);
+        timeUp(); // 시간 초과 처리
+      }
+    }, 1000);
+  } else {
+    // 하(무제한) 난이도면 에너지바를 가득 채워 고정
+    updateEnergyBar(timeLimit); // 0이지만 그냥 고정 표현
+  }
+}
+
+// -------------------------------------------
+// 에너지바 갱신
+function updateEnergyBar(remaining) {
+  const bar = document.getElementById("energyBar");
+  if(difficulty === "low") {
+    // 무제한 -> 꽉 찬 상태로 유지
+    bar.style.transform = "translateX(0)";
+    return;
+  }
+  const ratio = (remaining / timeLimit);
+  // 에너지바 길이를 비율만큼 왼쪽으로 이동하여 시각화
+  // (1 -> 0%이동, 0 -> 100%이동)
+  const percentShift = 100 - (ratio * 100);
+  bar.style.transform = `translateX(-${percentShift}%)`;
+}
+
+// -------------------------------------------
+// 시간 초과 시 처리
+function timeUp(){
+  if(isGameOver) return;
+  // 기회 1 감소
+  life--;
+  updateLifeCount();
+  if(life <= 0) {
+    endGame();
+    return;
+  }
+  // 정답 안내 (시간 초과)
+  const feedback = document.getElementById("feedback");
+  feedback.innerHTML = "<p>시간이 초과되었습니다! 기회를 1 잃었습니다.</p>";
+  feedback.classList.remove("hidden");
+
+  // 다음 문제로 넘어감
+  usedCount++;
+  setTimeout(() => {
+    showNextQuestion();
+  }, 2000);
+}
+
+// -------------------------------------------
+// 정답 체크
+function checkAnswer(chosenIdx, correctIdx, problem) {
+  if(isGameOver) return;
+
+  clearInterval(energyInterval);
+
+  const feedback = document.getElementById("feedback");
+  feedback.classList.remove("hidden");
+
+  if(chosenIdx === correctIdx) {
+    // 정답
+    score += scorePerCorrect;
+    document.getElementById("score").textContent = score;
+    feedback.innerHTML = "<p>정답입니다!</p>";
+  } else {
+    // 오답
+    life--;
+    updateLifeCount();
+    feedback.innerHTML = `<p>틀렸습니다! 정답은 '${problem.choices[correctIdx]}'</p>`;
+    if(life <= 0) {
+      endGame();
+      return;
+    }
+  }
+
+  // 다음 문제
+  usedCount++;
+  setTimeout(() => {
+    feedback.classList.add("hidden");
+    showNextQuestion();
+  }, 2000);
+}
+
+// -------------------------------------------
+// 남은 기회 UI
+function updateLifeCount() {
+  document.getElementById("lifeCount").textContent = life;
+}
+
+// -------------------------------------------
+// 게임 종료
+function endGame() {
+  isGameOver = true;
+  clearInterval(totalTimer);
+  clearInterval(energyInterval);
+
+  // 퀴즈 화면 숨김
+  document.getElementById("quizScreen").classList.add("hidden");
+  // 최종 결과 화면
+  document.getElementById("endScreen").classList.remove("hidden");
+  document.getElementById("finalScore").textContent = score;
+  document.getElementById("finalTime").textContent = totalElapsed;
+}
+
+// -------------------------------------------
+// 점수 전송
+function sendScore() {
+  const gameName = "지수법칙의 활용";
+  const name = playerName;
+  const finalScore = score;
+  const elapsed = totalElapsed;
+
+  // 전송 시도
+  saveData(gameName, name, finalScore, elapsed);
+  document.getElementById("response").style.display = "block";
+}
+
+// -------------------------------------------
+// 서버에 데이터 전송 함수 (문제에서 주어진 코드 그대로 활용)
+async function saveData(game, name, score, elapsedTime) {
+  const FUNCTION_URL = "https://us-central1-record-f420d.cloudfunctions.net/report";
+  const requestData = {
+    game,
+    name,
+    score: parseInt(score, 10),
+    elapsedTime: parseInt(elapsedTime, 10)
+  };
+
+  try {
+    const response = await fetch(FUNCTION_URL, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify(requestData)
+    });
+
+    const responseData = await response.json();
+
+    if (response.ok) {
+      document.getElementById('response').innerText =
+        `성공: ${JSON.stringify(responseData, null, 2)}`;
+    } else {
+      document.getElementById('response').innerText =
+        `오류: ${JSON.stringify(responseData, null, 2)}`;
+    }
+  } catch (error) {
+    console.error('요청 실패:', error);
+    document.getElementById('response').innerText =
+      `네트워크 오류: ${error.message}`;
+  }
+}
+</script>
+</body>
+</html>
