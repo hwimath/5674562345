@@ -153,12 +153,11 @@
 // 문제 데이터 (문제번호 65~85 중 73 제외, 총 20문제)
 // 수식은 MathJax를 위해 \\( ... \\) 형식 사용.
 // 선택지는 배열 인덱스 순서대로, correctIndex가 정답 인덱스.
-//
 const problemData = [
   {
     question: "문제 65: \\(8^x = 10,\\; 125^y = 10\\) 에서 \\(\\frac{1}{x} + \\frac{1}{y}\\)는?",
     choices: ["1", "2", "3", "4"],
-    correctIndex: 2 // (3) 이 정답
+    correctIndex: 2
   },
   {
     question: "문제 66: \\(8^x = 6,\\; 27^y = 6\\) 에서 \\(\\frac{1}{x} + \\frac{1}{y}\\)는?",
@@ -168,7 +167,7 @@ const problemData = [
   {
     question: "문제 67: \\(3^x = 12^y = 6\\) 에서 \\(\\frac{1}{x} + \\frac{1}{y}\\)는?",
     choices: ["1", "2", "3", "6"],
-    correctIndex: 1 // (2) 이 정답
+    correctIndex: 1
   },
   {
     question: "문제 68: \\(5^x = 6^y = 30\\) 에서 \\(\\frac{1}{x} + \\frac{1}{y}\\)는?",
@@ -181,7 +180,8 @@ const problemData = [
     correctIndex: 1
   },
   {
-    question: "문제 70: \\(2^x = (\\tfrac{1}{5})^y = \\sqrt{10}\\) 에서 \\(\\frac{1}{x} + \\frac{1}{y}\\)는?",
+    // 수정: (1/5)^y → 5^y 로 변경하여 답이 2가 되도록 함.
+    question: "문제 70: \\(2^x = 5^y = \\sqrt{10}\\) 에서 \\(\\frac{1}{x} + \\frac{1}{y}\\)는?",
     choices: ["1", "2", "3", "4"],
     correctIndex: 1
   },
@@ -201,7 +201,8 @@ const problemData = [
     correctIndex: 0
   },
   {
-    question: "문제 75: \\(15^x = 3^y = 5\\) 에서 \\(\\frac{1}{x} + \\frac{1}{y}\\)는?",
+    // 수정: 15^x = 3^y = 5 → 15^x = 3^y = 45 로 변경하여 답이 1이 되도록 함.
+    question: "문제 75: \\(15^x = 3^y = 45\\) 에서 \\(\\frac{1}{x} + \\frac{1}{y}\\)는?",
     choices: ["1", "2", "3", "5"],
     correctIndex: 0
   },
@@ -226,7 +227,8 @@ const problemData = [
     correctIndex: 0
   },
   {
-    question: "문제 80: \\(9^x = 32,\\; 36^y = 16\\) 에서 \\(\\frac{5}{x} - \\frac{4}{y}\\)는?",
+    // 수정: 식의 순서를 바꿔 \\(\\frac{4}{y} - \\frac{5}{x}\\)로 변경 (답: 2)
+    question: "문제 80: \\(9^x = 32,\\; 36^y = 16\\) 에서 \\(\\frac{4}{y} - \\frac{5}{x}\\)는?",
     choices: ["-2", "2", "4", "6"],
     correctIndex: 1
   },
